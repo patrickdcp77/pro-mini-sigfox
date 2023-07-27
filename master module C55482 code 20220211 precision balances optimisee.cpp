@@ -10,7 +10,7 @@
 //mettre la valeur ****const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP = 116 ;**** à 2 ou 3 pour ne pas attendre un cycle de 15mn entre chaque mesure
 //ne rien mettre sur les balances avant chaque RESET et voir l'évolution des valeurs selon les poids posés
 //si tout semble bon, remettre les valeurs à ZERO pour ne pas débugger et à 116 pour avoir un cycle de 15mn entre chque envoi de trame sigfox
-
+//essai pour GIT
 
 #include <DHT_U.h>
 #include "DHT.h"

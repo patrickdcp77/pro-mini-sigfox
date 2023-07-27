@@ -84,6 +84,8 @@ Low power consumption
 
 ● Write/erase cycles: 10,000 flash/100,000 EEPROM
 
+essai pour GIT
+
 */
 
 #include <Arduino.h>
