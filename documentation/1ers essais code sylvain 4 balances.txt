@@ -1,0 +1,244 @@
+*************************************************
+
+if (AUTODETECT_HX711_N34) {
+sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x%04x%04x",
+
+header_byte,
+power_supply_voltage_Arduino,
+t_byte,
+h_byte,
+Weight_HX711_N1_Channel_A,
+Weight_HX711_N2_Channel_A,
+Weight_HX711_N3_Channel_A,
+Weight_HX711_N4_Channel_A);
+***************************************************
+
+
+Offset N1 Channel A : -231758.00 Offset N1 Channel B : 10945.00
+Offset N2 Channel A : 113766.00 Offset N2 Channel B : 11780.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348000.00 Offset N4 Channel A : -262264.00 AUTO DETECT N3&N4 : 1
+
+
+
+
+avec 87 kg sur balances empilées  1 en bas:
+
+Temperature: 21.00 *C SIGFOX #03: 70 Byte   Humidity : 55.20 %   SIGFOX #04: 6E Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101001
+Weight N1 Channel A : 3944 F68 111101101000 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 3872 F20 111100100000 Weight N2 Channel B : 9 9 1001 
+Weight N3 Channel A : 3817 EE9 111011101001 Weight N4 Channel A : 3765 EB5 111010110101 
+AT
+AT$SF=0046706e0f680f200ee90eb5
+AT$P=2
+
+
+
+
+avec balances vides étalées
+
+Temperature: 20.90 *C SIGFOX #03: 6F Byte   Humidity : 55.30 %   SIGFOX #04: 6E Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000100  SIGFOX #02: 44  SOLAR PANEL VOLTAGE: 101000
+Weight N1 Channel A : 1 1 1 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 2 2 10 
+Weight N3 Channel A : 0 0 0 Weight N4 Channel A : 0 0 0 
+AT
+AT$SF=00446f6e0001000000000000
+AT$P=2
+
+
+
+avec 87kg sur balance N1
+
+Temperature: 20.80 *C SIGFOX #03: 6F Byte   Humidity : 55.60 %   SIGFOX #04: 6F Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101010
+Weight N1 Channel A : 3785 EC9 111011001001 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 2 2 10 
+Weight N3 Channel A : 0 0 0 Weight N4 Channel A : 0 0 0 
+AT
+AT$SF=00466f6f0ec9000000000000
+
+
+avec 87kg sur balance N2
+
+Temperature: 20.80 *C SIGFOX #03: 6F Byte   Humidity : 55.50 %   SIGFOX #04: 6F Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101010
+Weight N1 Channel A : 2 2 10 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 3552 DE0 110111100000 Weight N2 Channel B : 0 0 0 
+Weight N3 Channel A : 0 0 0 Weight N4 Channel A : 0 0 0 
+AT
+AT$SF=00466f6f00020de000000000
+
+
+
+avec 87kg sur balance N3
+
+Temperature: 20.80 *C SIGFOX #03: 6F Byte   Humidity : 55.60 %   SIGFOX #04: 6F Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101001
+Weight N1 Channel A : 1 1 1 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 1 1 1 
+Weight N3 Channel A : 3764 EB4 111010110100 Weight N4 Channel A : 0 0 0 
+AT
+AT$SF=00466f6f000100000eb40000
+
+
+
+avec 87kg sur balance N4
+
+
+Temperature: 20.80 *C SIGFOX #03: 6F Byte   Humidity : 55.30 %   SIGFOX #04: 6E Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101010
+Weight N1 Channel A : 1 1 1 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 1 1 1 
+Weight N3 Channel A : 0 0 0 Weight N4 Channel A : 3758 EAE 111010101110 
+AT
+AT$SF=00466f6e0001000000000eae
+AT$P=2
+
+
+***********************************************
+balance 1    2kg
+balance 2    2kg
+balance 3    13,9 kg
+balance 1    0kg
+
+temp environ 21°  et 50% hum
+tension mesurée 3,98V au multimètre sur la batterie
+
+page 1
+
+	Time 	Seq Num 	Data / Decoding 	LQI 	Callbacks 	Location
+
+	2022-02-09 22:59:47 	2972 	00616e6b0051003702500000
+
+
+
+sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x%04x%04x",
+header_byte,power_supply_voltage_Arduino,t_byte,h_byte,Weight_HX711_N1_Channel_A,Weight_HX711_N2_Channel_A,Weight_HX711_N3_Channel_A,Weight_HX711_N4_Channel_A);
+
+00616e6b0051003702500000
+
+00      header_byte
+61      power_supply_voltage_Arduino
+6e      t_byte    température
+6b      h_byte    humidité
+0051    Weight_HX711_N1_Channel_A
+0037    Weight_HX711_N2_Channel_A
+0250    Weight_HX711_N3_Channel_A
+0000    Weight_HX711_N4_Channel_A
+
+
+******************************************
+après reset sans poids
+*********************************************
+SETUP DONE
+Offset N1 Channel A : -231888.00 Offset N1 Channel B : 11059.00
+Offset N2 Channel A : 118917.00 Offset N2 Channel B : 11644.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348281.00 Offset N4 Channel A : -262232.00 AUTO DETECT N3&N4 : 1
+
+
+après reset et 87kg sur balance 1
+
+Offset N1 Channel A : -1193526.00 Offset N1 Channel B : 11004.00
+Offset N2 Channel A : 118896.00 Offset N2 Channel B : 11643.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348618.00 Offset N4 Channel A : -262063.00 AUTO DETECT N3&N4 : 1
+
+calcul sur balance 1
+
+calibre - offset 
+(-1193526) - (-231888) =  961638 pas
+961638 / 87000 = 11,05
+
+
+après reset et 87kg sur balance 4
+Offset N1 Channel A : -231674.00 Offset N1 Channel B : 10936.00
+Offset N2 Channel A : 118888.00 Offset N2 Channel B : 11673.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348529.00 Offset N4 Channel A : -1221592.00 AUTO DETECT N3&N4 : 1
+
+calcul sur balance 4
+
+calibre - offset 
+(-1221592) - (-262232) =  959360 pas
+959360 / 87000 = 11,02
+
+
+
+après reset et 87kg sur balance 3
+Offset N1 Channel A : -232007.00 Offset N1 Channel B : 10424.00
+Offset N2 Channel A : 118838.00 Offset N2 Channel B : 11280.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -1306197.00 Offset N4 Channel A : -262621.00 AUTO DETECT N3&N4 : 1
+
+calcul sur balance 3
+
+calibre - offset 
+(-1306197) - (-348281) =  957916 pas
+957916 / 87000 = 11,01
+
+***************************
+avec un poids de 13,9kg sur N1
+Offset N1 Channel A : -384440.00 Offset N1 Channel B : 10490.00
+Offset N2 Channel A : 118737.00 Offset N2 Channel B : 11275.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348440.00 Offset N4 Channel A : -262564.00 AUTO DETECT N3&N4 : 1
+
+calcul sur balance 1
+
+calibre - offset 
+(-384440) - (-231888) =  152552 pas
+152552 / 13900 = 10,97
+
+
+avec un poids de 13,9kg sur N2
+Offset N1 Channel A : -232082.00 Offset N1 Channel B : 11240.00
+Offset N2 Channel A : -11915.00 Offset N2 Channel B : 10987.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348395.00 Offset N4 Channel A : -262570.00 AUTO DETECT N3&N4 : 1
+
+calcul sur balance 2
+
+calibre - offset 
+(-11915) - (118917) =  130832 pas
+130832 / 13900 = 9,41
+
+avec un poids de 13,9kg sur N3
+Offset N1 Channel A : -231913.00 Offset N1 Channel B : 10662.00
+Offset N2 Channel A : 117385.00 Offset N2 Channel B : 11455.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -500086.00 Offset N4 Channel A : -262537.00 AUTO DETECT N3&N4 : 1
+calcul sur balance 3
+
+calibre - offset 
+(-500086) - (-348281) =  151805 pas
+151805 / 13900 = 10,9
+
+
+avec un poids de 13,9kg sur N4
+Offset N1 Channel A : -231762.00 Offset N1 Channel B : 11381.00
+Offset N2 Channel A : 118258.00 Offset N2 Channel B : 11373.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348232.00 Offset N4 Channel A : -414010.00 AUTO DETECT N3&N4 : 1
+calcul sur balance 4
+
+calibre - offset 
+(-414010) - (-262232) =  151778 pas
+151778 / 13900 = 10,9
+
+
+
+*****************************************
+*****************************************
+
+que faire des mesures obtenues avec des poids quelconque?
+
+ici, apèes un reset à vide et puis un poids de 13,9kg sur N4
+
+Temperature: 19.60 *C SIGFOX #03: 6D Byte   Humidity : 54.30 %   SIGFOX #04: 6C Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101011
+Weight N1 Channel A : 2 2 10 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 2 2 10 
+Weight N3 Channel A : 0 0 0 Weight N4 Channel A : 591 24F 1001001111 
+AT
+AT$SF=00466d6c000200000000024f
+
+
+
+
+
+
+

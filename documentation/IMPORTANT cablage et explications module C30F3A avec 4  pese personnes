@@ -1,0 +1,179 @@
+cablage pour 4 pèse personne et une DHT22 
+module test C30F3A
+régulateur et led power enlevés
+
+
+module C32F6C test avec 4 HX711 internes à la centrale 3m de cable
+
+************************************************
+la DHT22
+#define DHT_POWER_SUPPLY_PIN 12
+#define DHTPIN A3
+mettre 4,7K entre data et le plus
+
+les balances
+
+#define POWER_PIN_HX711_N1_DATA_OUT 3
+#define PIN_HX711_N1_DATA_OUT 4
+#define PIN_HX711_N1_SCK_AND_POWER_DOWN 8
+
+#define POWER_PIN_HX711_N2_DATA_OUT 3
+#define PIN_HX711_N2_DATA_OUT 5
+#define PIN_HX711_N2_SCK_AND_POWER_DOWN 9
+
+#define POWER_PIN_HX711_N3_DATA_OUT 3
+#define PIN_HX711_N3_DATA_OUT 6
+#define PIN_HX711_N3_SCK_AND_POWER_DOWN 10
+
+#define POWER_PIN_HX711_N4_DATA_OUT 3
+#define PIN_HX711_N4_DATA_OUT 7
+#define PIN_HX711_N4_SCK_AND_POWER_DOWN 11
+
+mesure de la tension batterie par pont diviseur (sacrifier si configuration Patrick 4 balances)
+#define MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT A0
+#define MICROPROCESOR_VOLTAGE_CAN_PULL_UP_PIN A1
+#define SOLAR_PANEL_VOLTAGE_CAN_MEASUREMENT A2
+
+bablage des résistances du pont diviseur
+la mesure se fait en A0 et latension de la batterie est en A1 quand la pin est mise à 1, donc au niveau VCC
+47K entre A0 et A1, 10K // à 1nF entre A0 et le plan de masse 
+
+A2 en attente pour le panneau solaire
+
+module sigfox
+#define RESET_SIGFOX_MODULE 2
+TX RX de sigfox sur le µP D0 et D1
+
+la LED sur la platine GPIO 13 en //avec une LED éventuellement à l'extérieur
+
+ne pas brancher le panneau solaire pour l'instant pour observer le comportement de la batterie
+
+**********************************************
+LES ESSAIS ET LES CALCULS DE POIDS
+***********************************************
+exemple avec balances vides étalées 
+
+après reset sans poids
+SETUP DONE
+Offset N1 Channel A : -231888.00 Offset N1 Channel B : 11059.00
+Offset N2 Channel A : 118917.00 Offset N2 Channel B : 11644.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348281.00 Offset N4 Channel A : -262232.00 AUTO DETECT N3&N4 : 1
+
+
+après reset et 87kg sur balance 1
+Offset N1 Channel A : -1193526.00 Offset N1 Channel B : 11004.00
+Offset N2 Channel A : 118896.00 Offset N2 Channel B : 11643.00 AUTO DETECT N2 : 1
+Offset N3 Channel A : -348618.00 Offset N4 Channel A : -262063.00 AUTO DETECT N3&N4 : 1
+
+que faire des mesures obtenues avec des poids quelconque?
+
+avec 87kg sur balance N3
+Temperature: 20.80 *C SIGFOX #03: 6F Byte   Humidity : 55.60 %   SIGFOX #04: 6F Byte   
+ADMUX: 11000010  ARDUINO VOLTAGE : 1000110  SIGFOX #02: 46  SOLAR PANEL VOLTAGE: 101001
+Weight N1 Channel A : 1 1 1 Weight N1 Channel B : 0 0 0 
+Weight N2 Channel A : 0 0 0 Weight N2 Channel B : 1 1 1 
+Weight N3 Channel A : 3764 EB4 111010110100 Weight N4 Channel A : 0 0 0 
+AT
+AT$SF=00466f6f000100000eb40000
+
+on calcul le quoéficient à partir d'un poids connu de 87Kg
+87000 / 3764 = 23,1 
+moyenne des balances 22,9 
+
+dans NODERED, d'où sort le * 5,82 ? *******************
+
+var pl = msg.payload.payload;
+var b_1 = (parseInt(pl[12]+pl[13], 16));
+var b_2 = (parseInt(pl[14]+pl[15], 16));
+
+var masse = ((b_1*256)+(b_2)) * 5.82;
+var newMsg = { payload: masse };
+return newMsg;
+
+
+**********************************************
+CALCUL DES TEMPÉRATURES ET HUMIDITÉS
+***********************************************
+
+DANS LE CODE
+
+float h = dht.readHumidity();
+
+float t = dht.readTemperature();
+
+ int8_t  t_byte = (t + 35 )*2;
+    uint8_t h_byte = h*2;
+
+DANS NODERED
+
+var pl = msg.payload.payload;
+var b_1 = (parseInt(pl[4]+pl[5], 16));
+var temp = (b_1 / 2) - 35 ;
+var newMsg = { payload: temp };
+return newMsg;
+
+
+var pl = msg.payload.payload;
+var b_1 = (parseInt(pl[6]+pl[7], 16));
+var hum = b_1 / 2;
+var newMsg = { payload: hum };
+return newMsg;
+
+
+**********************************************
+CALCUL DES TENSIONS
+***********************************************
+
+DANS LE CODE
+
+ // analogReference(INTERNAL);  dans set up 
+
+    ADCSRA |= B10000000;
+    
+    int  test = analogRead(MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT); // Une mesure pour rien pour eviter les erreurs ( 3F delta contaté), a voir si mettre une fois dans le setup
+    
+    uint8_t power_supply_voltage_Arduino= (analogRead(MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT)>>2);
+
+    test = analogRead(SOLAR_PANEL_VOLTAGE_CAN_MEASUREMENT); // Une mesure pour rien pour eviter les erreurs ( 3F delta contaté), a voir si mettre une fois dans le setup
+    
+    uint8_t power_supply_voltage_Solar_panel= (analogRead(SOLAR_PANEL_VOLTAGE_CAN_MEASUREMENT)>>2);
+    
+    digitalWrite(MICROPROCESOR_VOLTAGE_CAN_PULL_UP_PIN,LOW); 
+    
+    ADCSRA &= B01111111;
+
+
+DANS NODERED
+
+var pl = msg.payload.payload;
+var b_1 = (parseInt(pl[2]+pl[3], 16));
+var tension = 0.0244921875 * b_1;
+var newMsg = { payload: tension };
+return newMsg;
+
+La référence du CAN est 1,1V <-> 0xFF et 0V <-> 0x00 donc un pas repésente 0,004296875 Volt
+avec le rapport de résistances ( en supposant que les valeurs des résistances sont justes - tolérances 0% ... -) soit  =  x ( 10+47/10 )=   x 5,7
+Soit un pas équivalent @ 0,0244921875 Volts
+Dans le cas de de la valeur lue = 158, cela fait 3,87 Volts
+
+mettre A1 à 1 qui représente en fait la tension appliquée à VCC donc de la batterie
+lire A0 du pont diviseur
+la formule de calcul du pont est  VA0 = VA1 * (10K/10K+47K)
+
+
+*************************************************
+ORGANISATION DES TRAMES POUR SIGFOX
+*************************************************
+
+if (AUTODETECT_HX711_N34) {
+sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x%04x%04x",
+
+header_byte,
+power_supply_voltage_Arduino,
+t_byte,
+h_byte,
+Weight_HX711_N1_Channel_A,
+Weight_HX711_N2_Channel_A,
+Weight_HX711_N3_Channel_A,
+Weight_HX711_N4_Channel_A);
+***************************************************
