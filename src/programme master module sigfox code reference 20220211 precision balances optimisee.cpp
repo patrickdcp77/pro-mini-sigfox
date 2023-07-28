@@ -2,6 +2,7 @@
 /*
 
 fonctionne correctement
+essai de clone++++++++++++++++++++++
 
 pour les balances, cablage des connecteurs 
 utiliser les canaux B des HX711 si l'on veut économiser les convertisseurs
