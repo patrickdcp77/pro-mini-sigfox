@@ -2,7 +2,12 @@
 /*
 
 fonctionne correctement
-essai de clone++++++++++++++++++++++
+
++++++++++++++++++++++++++++++++++++++++++++++++
+code rédigé pour 
+4 balances et une sonde temp hum DHT22
+mesure et hibernation tous les 1/4H
+envoi sur réseau sigfox
 
 pour les balances, cablage des connecteurs 
 utiliser les canaux B des HX711 si l'on veut économiser les convertisseurs
@@ -149,8 +154,11 @@ float offset_HX711_N4_ChannelA;
 
 const unsigned int Weight_sensitivity = 4 ;
 
-const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP = 3; //10 ; // MUST BE >=2 , 116 for 15mnsNumber of WATCH DOG before starting the main software  
+////////////////////////////////////////////pour modifier l'hibernation
+const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP = 116; //10 ; // MUST BE >=2 , 116 for 15mnsNumber of WATCH DOG before starting the main software  
 unsigned int counter_power_down_wake_up; // 
+/////////////////////////////////////////////
+
 
 //  Header byte = 1st Byte transmitted int he Sigox Tram ( SIGFOX #01 )
 // Bit 7 = Sigfog Debug Mode, =1 for SIGFOX DEBUG MODE
@@ -161,8 +169,10 @@ unsigned int counter_power_down_wake_up; //
 // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
 byte header_byte = B00000000;
 
-boolean DEBUG_MODE =  1; // =1 or debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
 
+/////////////////////////////////////pour modifier le débuggage
+boolean DEBUG_MODE =  0; // =1 or debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
+//////////////////////////////////////
 
 // put your setup code here, to run once:
 void setup() {
@@ -177,9 +187,14 @@ void setup() {
 
 Serial.begin(9600);
 
+Serial.println("programme master module sigfox code reference 20220211 precision balances optimisee");
+
+
+
 if (DEBUG_MODE) {   
-                        Serial.print("SETUP DONE");
-                        Serial.println();
+                        Serial.println("SETUP DONE");
+                        
+                        
                         pinMode (LED_BUILTIN,OUTPUT); 
                         digitalWrite(LED_BUILTIN,HIGH);
                         delay(2000);
@@ -448,7 +463,7 @@ if (counter_power_down_wake_up == 0) {
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
     float h = dht.readHumidity();
-
+    
     // Read temperature as Celsius
     float t = dht.readTemperature();
 
