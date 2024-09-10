@@ -5,7 +5,7 @@ fonctionne correctement
 
 +++++++++++++++++++++++++++++++++++++++++++++++
 code rédigé pour 
-4 balances et une sonde temp hum DHT22
+4 balances et une sonde temp hum DHT22 (-35 à 50°) ou DHT11 (0 à 50°)
 mesure et hibernation tous les 1/4H
 envoi sur réseau sigfox
 
@@ -14,9 +14,9 @@ utiliser les canaux B des HX711 si l'on veut économiser les convertisseurs
 
 
 cordon crème et plat
-noire   A,B+
-rouge   E-
-jaune   E+
+jaune   A,B+
+noir   E-
+rouge   E+
 vert    A,B-
 
 cordon blanc et plat avec 4 fils couleurs pales
@@ -60,6 +60,8 @@ mise en mémoire de la tare (offset) tant qu'il n'y a pas de reset
 pas de DHT22 sur les derniers prototypes
 sinon  alime+ de la DHT sur D12  et DATA sur A3
 
+on remplace par une sonde DS18B20 alime en D8 et data en D9***********************
+
 pas de panneau solaire mais utilisation d'une pile plate 4V5 alcaline d'environ 3000 mA
 l'alimentation se fait via le connecteur latéral du PRO MINI  VCC et GND
 
@@ -84,13 +86,79 @@ balance N1_Channel B : connecter sur E+ E- B+ B-
 
 Operating voltage:
 ●2.7V to 5.5V for ATmega328P donc pile plate alcaline de 4V5 possible sans régulateur
-Low power consumption
+Low power consumption (caractéristiques constructeur du microproc)
 ● Active mode: 1.5mA at 3V - 4MHz
 ● Power-down mode: 1μA at 3V
 
-● Write/erase cycles: 10,000 flash/100,000 EEPROM
+● Write/erase cycles: 10,000 flash/100,000 EEPROM  (nb de fois que l'on peut écrire dans la EEPROM, 
+ici on le fait seulement pour mettre en mémoire la tare )
 
-essai pour GIT
+Mise en sommeil du système:
+à priori (voir Sylvain), utilisation d'un timer via un registre à décalage qui est décrémenté ou incrémenté 116 fois pour couvrir 1/4 heure
+à la mise en sommeil, les capteurs poids et météo qui sont alimentés par les GPIO (cosommation modeste et supportable par les entrées) 
+sont mis à zéro.
+le module radio consomme plus en émission et est donc alimenté directement par la batterie car il fonctionne entre 3 et 5V
+il est mis en veille avec son propre système
+
+*******************
+code de mise en veille (à faire décrire avec précision par Sylvain):
+*******************
+
+
+****************déclaration des variables************
+////////////////////////////////////////////   pour modifier l'hibernation
+const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP = 116; //2 ; // MUST BE >=2 , 116 for 15mnsNumber of WATCH DOG before starting the main software  
+unsigned int counter_power_down_wake_up; // 
+/////////////////////////////////////////////
+
+*************dans le setup***************
+counter_power_down_wake_up = MAX_COUNTER_POWER_DOWN_WAKE_UP;
+
+//noInterrupts (); // timed sequence follows
+cli();  // Interrupts impossible
+
+// ENABLE SLEEP 
+//set_sleep_mode (SLEEP_MODE_PWR_DOWN);
+SMCR |= (1<<2); //SET UP  SLEEP MODE = Power Down Mode
+//sleep_enable();
+SMCR |= 1; //Enable Sleep
+
+                                      
+//interrupts (); // guarantees next instruction executed
+sei();
+
+***********dans le loop**************
+if (counter_power_down_wake_up == 0) {
+    
+    counter_power_down_wake_up  = MAX_COUNTER_POWER_DOWN_WAKE_UP;
+    
+
+    PUIS LE CODE ETC..... QUI FONCTIONNE DANS LA CONDITION IF DU COMPTEUR
+
+    // PUT HERE THE CODE TO BE EXECUTED 
+
+    Serial.begin(9600);
+
+   
+    pinMode(RESET_SIGFOX_MODULE,OUTPUT);
+
+    digitalWrite(RESET_SIGFOX_MODULE,LOW);
+    delay (100);
+    digitalWrite(RESET_SIGFOX_MODULE,HIGH);
+    // delay (100);
+
+
+    if (DEBUG_MODE) { 
+
+    PUIS APRÈS LA CONDITION IF ON A LA CONDITION ELSE SUIVANTE
+
+    else {   
+// Decrementaiton counter WDT
+counter_power_down_wake_up  =  counter_power_down_wake_up-1 ;
+
+}
+
+
 
 */
 
@@ -98,20 +166,35 @@ essai pour GIT
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-#include <DHT_U.h>
-#include "DHT.h"
-#define DHT_POWER_SUPPLY_PIN 12 // l'alimentation de la DHT22 se fait via un GPIO qui sera mis à zéro pour couper l'alimentation
-#define DHTPIN A3// connexion au DATA de la DHT22
-#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321  utilisation d'une DHT22 sur platine ayant déjà la résistance entre le DATA et le PLUS
+//concerne la sonde DS18B20
+#include <OneWire.h>
+#include <DallasTemperature.h>
+// Data wire is plugged into digital pin 2 on the Arduino
+#define ONE_WIRE_BUS A3
+#define DS18B20_POWER_SUPPLY_PIN 12 // l'alimentation de la DHT22 se fait via un GPIO qui sera mis à zéro pour couper l'alimentation
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
 
-DHT dht(DHTPIN, DHTTYPE);  //initailisation de la DHT22
+// Pass our oneWire reference to Dallas Temperature sensor
+DallasTemperature sensors(&oneWire);
+
+
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+#define DHTPIN 11     // Pin où le pin DATA du DHT22 est connecté
+#define DHTTYPE DHT22   // Définir le type de DHT
+DHT dht(DHTPIN, DHTTYPE);
+#define DHT_POWER_SUPPLY_PIN 10
+
 
 #include "HX711.h"
 HX711 Hx711_N1;   
+/*
 HX711 Hx711_N2;
 HX711 Hx711_N3;
 HX711 Hx711_N4;
-
+*/
 #define POWER_PIN_HX711_N1_DATA_OUT 3//chaque HX711 a une alimentation commune sur un même GPIO mis à zéro pour couper l'alimentation
 #define PIN_HX711_N1_DATA_OUT 4 // connexion au DATA
 #define PIN_HX711_N1_SCK_AND_POWER_DOWN 8// connexion à l'horloge SCK
@@ -119,6 +202,7 @@ HX711 Hx711_N4;
 float offset_HX711_N1_ChannelA;
 float offset_HX711_N1_ChannelB;//Sylvain utilise les 2 canaux pour mettre une barre de pesée par canal
 
+/*
 boolean AUTODETECT_HX711_N2 = 1 ; // 0 = No 2nd HX711, autodetection of a 2nd HX711 is in Setup sequence will toggle to 1 if detected 
 
 #define POWER_PIN_HX711_N2_DATA_OUT 3
@@ -127,8 +211,8 @@ boolean AUTODETECT_HX711_N2 = 1 ; // 0 = No 2nd HX711, autodetection of a 2nd HX
 
 float offset_HX711_N2_ChannelA;
 float offset_HX711_N2_ChannelB;
-
-
+*/
+/*
 boolean AUTODETECT_HX711_N34 = 0 ; // 0 = No 3rd&4th  HX711, autodetection of a 3rd & 4th  HX711 is in Setup sequence will toggle to 1 if detected 
 
 #define POWER_PIN_HX711_N3_DATA_OUT 3
@@ -142,7 +226,7 @@ boolean AUTODETECT_HX711_N34 = 0 ; // 0 = No 3rd&4th  HX711, autodetection of a 
 
 float offset_HX711_N3_ChannelA;
 float offset_HX711_N4_ChannelA;
-
+*/
 #include <avr/interrupt.h> 
 
 #define MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT A0 
@@ -154,8 +238,8 @@ float offset_HX711_N4_ChannelA;
 
 const unsigned int Weight_sensitivity = 4 ;
 
-////////////////////////////////////////////pour modifier l'hibernation
-const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP = 116; //10 ; // MUST BE >=2 , 116 for 15mnsNumber of WATCH DOG before starting the main software  
+////////////////////////////////////////////   pour modifier l'hibernation
+const unsigned int MAX_COUNTER_POWER_DOWN_WAKE_UP =116; //2 ; // MUST BE >=2 , 116 for 15mnsNumber of WATCH DOG before starting the main software  
 unsigned int counter_power_down_wake_up; // 
 /////////////////////////////////////////////
 
@@ -171,7 +255,7 @@ byte header_byte = B00000000;
 
 
 /////////////////////////////////////pour modifier le débuggage
-boolean DEBUG_MODE =  0; // =1 or debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
+boolean DEBUG_MODE = 0 ;// =1 or debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
 //////////////////////////////////////
 
 // put your setup code here, to run once:
@@ -185,11 +269,17 @@ void setup() {
     // delay (100);
 
 
+    /**********************
+    pinMode(A3, INPUT);
+
+    pinMode(12, OUTPUT);
+    */
 Serial.begin(9600);
 
 Serial.println("programme master module sigfox code reference 20220211 precision balances optimisee");
 
-
+//concerne la sonde DS18B20
+sensors.begin();
 
 if (DEBUG_MODE) {   
                         Serial.println("SETUP DONE");
@@ -206,15 +296,6 @@ if (DEBUG_MODE) {
 pinMode(POWER_PIN_HX711_N1_DATA_OUT,OUTPUT);
 digitalWrite(POWER_PIN_HX711_N1_DATA_OUT,HIGH);
 
-pinMode(POWER_PIN_HX711_N2_DATA_OUT,OUTPUT);
-digitalWrite(POWER_PIN_HX711_N2_DATA_OUT,HIGH);
-
-pinMode(POWER_PIN_HX711_N3_DATA_OUT,OUTPUT);
-digitalWrite(POWER_PIN_HX711_N3_DATA_OUT,HIGH);
-
-pinMode(POWER_PIN_HX711_N4_DATA_OUT,OUTPUT);
-digitalWrite(POWER_PIN_HX711_N4_DATA_OUT,HIGH);
-
 delay(1000);
 
 float Sample_weight;
@@ -227,30 +308,6 @@ Hx711_N1.begin(PIN_HX711_N1_DATA_OUT,PIN_HX711_N1_SCK_AND_POWER_DOWN,32 );
 Sample_weight = Hx711_N1.get_units();
 offset_HX711_N1_ChannelB = Hx711_N1.get_units();
 
-Hx711_N2.begin(PIN_HX711_N2_DATA_OUT,PIN_HX711_N2_SCK_AND_POWER_DOWN,64 );
-Sample_weight = Hx711_N2.get_units();
-offset_HX711_N2_ChannelA = Hx711_N2.get_units();
-
-Hx711_N2.begin(PIN_HX711_N2_DATA_OUT,PIN_HX711_N2_SCK_AND_POWER_DOWN,32 );
-Sample_weight = Hx711_N2.get_units();
-offset_HX711_N2_ChannelB = Hx711_N2.get_units();
-
-if ((offset_HX711_N2_ChannelA!=0) & (offset_HX711_N2_ChannelA!=0)) { AUTODETECT_HX711_N2 = 1 ;}
-
-
-
-Hx711_N3.begin(PIN_HX711_N3_DATA_OUT,PIN_HX711_N3_SCK_AND_POWER_DOWN,64 );
-Sample_weight = Hx711_N3.get_units();
-offset_HX711_N3_ChannelA = Hx711_N3.get_units();
-
-Hx711_N4.begin(PIN_HX711_N4_DATA_OUT,PIN_HX711_N4_SCK_AND_POWER_DOWN,64 );
-Sample_weight = Hx711_N4.get_units();
-offset_HX711_N4_ChannelA = Hx711_N4.get_units();
-
-if ((offset_HX711_N3_ChannelA!=0) & (offset_HX711_N4_ChannelA!=0)) { AUTODETECT_HX711_N34 = 1 ;}
-
-
-
 
 if (DEBUG_MODE) {  
                         Serial.print("Offset N1 Channel A : ");
@@ -262,31 +319,6 @@ if (DEBUG_MODE) {
                         Serial.println();
                         
 
-                        
-                        Serial.print("Offset N2 Channel A : ");
-                        Serial.print(offset_HX711_N2_ChannelA);
-
-                        Serial.print(" Offset N2 Channel B : ");
-                        Serial.print(offset_HX711_N2_ChannelB);
-
-                        Serial.print(" AUTO DETECT N2 : ");
-                        Serial.print(AUTODETECT_HX711_N2);
-
-                        Serial.println();              
-
-                        
-                        
-                        Serial.print("Offset N3 Channel A : ");
-                        Serial.print(offset_HX711_N3_ChannelA);
-
-                        Serial.print(" Offset N4 Channel A : ");
-                        Serial.print(offset_HX711_N4_ChannelA);
-
-                        Serial.print(" AUTO DETECT N3&N4 : ");
-                        Serial.print(AUTODETECT_HX711_N34);
-
-                        Serial.println();
-                        
                         Serial.flush() ;
 
 
@@ -422,67 +454,51 @@ if (counter_power_down_wake_up == 0) {
     pinMode(POWER_PIN_HX711_N1_DATA_OUT,OUTPUT);
     digitalWrite(POWER_PIN_HX711_N1_DATA_OUT,HIGH);
     
-    if (AUTODETECT_HX711_N2) {
-        pinMode(POWER_PIN_HX711_N2_DATA_OUT,OUTPUT);
-        digitalWrite(POWER_PIN_HX711_N2_DATA_OUT,HIGH);                   
-    }
-
-    if (AUTODETECT_HX711_N34) {
-        pinMode(POWER_PIN_HX711_N3_DATA_OUT,OUTPUT);
-        digitalWrite(POWER_PIN_HX711_N3_DATA_OUT,HIGH); 
-
-        pinMode(POWER_PIN_HX711_N4_DATA_OUT,OUTPUT);
-        digitalWrite(POWER_PIN_HX711_N4_DATA_OUT,HIGH);     
-
-    }
-
-
     
-    pinMode(DHT_POWER_SUPPLY_PIN,OUTPUT);
-    digitalWrite(DHT_POWER_SUPPLY_PIN,HIGH);
+    pinMode(DS18B20_POWER_SUPPLY_PIN,OUTPUT);
+    digitalWrite(DS18B20_POWER_SUPPLY_PIN,HIGH);
 
     pinMode(MICROPROCESOR_VOLTAGE_CAN_PULL_UP_PIN,OUTPUT);
     digitalWrite(MICROPROCESOR_VOLTAGE_CAN_PULL_UP_PIN,HIGH);
     pinMode(MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT,INPUT); 
     pinMode(SOLAR_PANEL_VOLTAGE_CAN_MEASUREMENT,INPUT);
 
-
-    //delay(2000);
-
-
-
-
-    dht.begin();
+    sensors.begin();
     delay(1000);    // MADATORY 1000 or put code in between
 
-
-
-  
-    
+        
     
     // Reading temperature or humidity takes about 250 milliseconds!
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    float h = dht.readHumidity();
-    
+    //float h = dht.readHumidity();
+    float h = 0;
     // Read temperature as Celsius
-    float t = dht.readTemperature();
-
-
-    digitalWrite(DHT_POWER_SUPPLY_PIN,LOW);
-
+    //float t = dht.readTemperature();
     
+    
+    // Send command to all the sensors for temperature conversion
+    sensors.requestTemperatures(); 
+    // Read temperature in Celsius
+    float temperatureC = sensors.getTempCByIndex(0);
 
-    int8_t  t_byte = (t + 35 )*2;
-    uint8_t h_byte = h*2;
+
+    //digitalWrite(DHT_POWER_SUPPLY_PIN,LOW);
+    digitalWrite(DS18B20_POWER_SUPPLY_PIN,LOW);
+    
+    uint8_t h_byte = 0;
+
+    int8_t  t_byte = (temperatureC + 35 )*2;
 
     if (DEBUG_MODE) { 
-                        Serial.print("Temperature: "); 
+                        Serial.print("Temperature ds18b20: "); 
 
-                        Serial.print(t);
+                        //Serial.print(t);
+                        Serial.print(temperatureC);
                         Serial.print(" *C SIGFOX #03: ");
                         Serial.print(t_byte,HEX);
                         Serial.print(" Byte   ");
 
+                        
                         Serial.print("Humidity : "); 
                         Serial.print(h);
                         Serial.print(" %\t SIGFOX #04: ");
@@ -563,194 +579,18 @@ if (counter_power_down_wake_up == 0) {
     unsigned int Weight_HX711_N1_Channel_B = Sample_weight;
 
 
-    
-
-    unsigned int Weight_HX711_N2_Channel_A;
-    unsigned int Weight_HX711_N2_Channel_B;
-
-    if (AUTODETECT_HX711_N2) {
-                                Hx711_N2.begin(PIN_HX711_N2_DATA_OUT,PIN_HX711_N2_SCK_AND_POWER_DOWN,64 );
-                                Sample_weight = Hx711_N2.get_units();                                          // For nothing library problem...
-                                Sample_weight = (offset_HX711_N2_ChannelA - Hx711_N2.get_units())/256*Weight_sensitivity;
-
-                                if (Sample_weight < 0) { 
-                                    Sample_weight =0; 
-                                    }
-                                else { 
-                                    if (Sample_weight > 65535) { 
-                                                            Sample_weight = 65535; 
-                                                            }
-                                    }
-
-                                Weight_HX711_N2_Channel_A = Sample_weight;
-
-                                Hx711_N2.begin(PIN_HX711_N2_DATA_OUT,PIN_HX711_N2_SCK_AND_POWER_DOWN,32 );
-                                Sample_weight = Hx711_N2.get_units();                                          // For nothing library problem...
-                                Sample_weight = (offset_HX711_N2_ChannelB - Hx711_N2.get_units())/128*Weight_sensitivity;
-
-                                if (Sample_weight < 0) {
-                                    Sample_weight =0; 
-                                    }
-                                    else { 
-                                    if (Sample_weight > 65535) { 
-                                                                Sample_weight = 65535; 
-                                                                }
-                                    }
-                                
-                                Weight_HX711_N2_Channel_B = Sample_weight;
-                                
-                                
-                            }
-
-    
-
-
-
-
-    unsigned int Weight_HX711_N3_Channel_A;
-    unsigned int Weight_HX711_N4_Channel_A;
-
-
-    if (AUTODETECT_HX711_N34) {
-                                Hx711_N3.begin(PIN_HX711_N3_DATA_OUT,PIN_HX711_N3_SCK_AND_POWER_DOWN,64 );
-                                Sample_weight = Hx711_N3.get_units();                                          // For nothing library problem...
-                                Sample_weight = (offset_HX711_N3_ChannelA - Hx711_N3.get_units())/256*Weight_sensitivity;
-
-                                if (Sample_weight < 0) { 
-                                    Sample_weight =0; 
-                                    }
-                                else { 
-                                    if (Sample_weight > 65535) { 
-                                                            Sample_weight = 65535; 
-                                                            }
-                                    }
-
-                                Weight_HX711_N3_Channel_A = Sample_weight;
-
-                                
-
-                                Hx711_N4.begin(PIN_HX711_N4_DATA_OUT,PIN_HX711_N4_SCK_AND_POWER_DOWN,64 );
-                                Sample_weight = Hx711_N4.get_units();                                          // For nothing library problem...
-                                Sample_weight = (offset_HX711_N4_ChannelA - Hx711_N4.get_units())/256*Weight_sensitivity;
-
-                                if (Sample_weight < 0) {
-                                    Sample_weight =0; 
-                                    }
-                                    else { 
-                                    if (Sample_weight > 65535) { 
-                                                                Sample_weight = 65535; 
-                                                                }
-                                    }
-                                
-                                Weight_HX711_N4_Channel_A = Sample_weight;
-
-                                digitalWrite(POWER_PIN_HX711_N3_DATA_OUT,LOW);
-                                digitalWrite(POWER_PIN_HX711_N4_DATA_OUT,LOW);
-
-                            }
-
+   
 
     digitalWrite(POWER_PIN_HX711_N1_DATA_OUT,LOW);
-       if (AUTODETECT_HX711_N2) { digitalWrite(POWER_PIN_HX711_N2_DATA_OUT,LOW); }
 
-
-    if (DEBUG_MODE) {  
-                        Serial.print("Weight N1 Channel A : ");
-   
-                        Serial.print(Weight_HX711_N1_Channel_A,DEC);
-                        Serial.print(" "); 
-                        Serial.print(Weight_HX711_N1_Channel_A,HEX);
-                        Serial.print(" "); 
-                        Serial.print(Weight_HX711_N1_Channel_A,BIN);
-                        Serial.print(" "); 
-
-                        Serial.print("Weight N1 Channel B : ");
-
-                        Serial.print(Weight_HX711_N1_Channel_B,DEC);
-                        Serial.print(" "); 
-                        Serial.print(Weight_HX711_N1_Channel_B,HEX);
-                        Serial.print(" "); 
-                        Serial.print(Weight_HX711_N1_Channel_B,BIN);
-                        Serial.print(" ");
-   
-                        Serial.println();
-
-                        if (AUTODETECT_HX711_N2) {
-                                                    Serial.print("Weight N2 Channel A : ");
-   
-                                                    Serial.print(Weight_HX711_N2_Channel_A,DEC);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N2_Channel_A,HEX);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N2_Channel_A,BIN);
-                                                    Serial.print(" "); 
-
-                                                    Serial.print("Weight N2 Channel B : ");
-
-                                                    Serial.print(Weight_HX711_N2_Channel_B,DEC);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N2_Channel_B,HEX);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N2_Channel_B,BIN);
-                                                    Serial.print(" ");
-                            
-                                                    Serial.println();
-
-                                                    }
-
-                        if (AUTODETECT_HX711_N34) {
-                                                    Serial.print("Weight N3 Channel A : ");
-   
-                                                    Serial.print(Weight_HX711_N3_Channel_A,DEC);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N3_Channel_A,HEX);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N3_Channel_A,BIN);
-                                                    Serial.print(" "); 
-
-                                                    Serial.print("Weight N4 Channel A : ");
-
-                                                    Serial.print(Weight_HX711_N4_Channel_A,DEC);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N4_Channel_A,HEX);
-                                                    Serial.print(" "); 
-                                                    Serial.print(Weight_HX711_N4_Channel_A,BIN);
-                                                    Serial.print(" ");
-                            
-                                                    Serial.println();
-
-                                                    }
-
-
-                    }
-
-
-
-    
-
-
+      
 // Message AT popur Sigfox - 
 Serial.println("AT");  // Test after wake up from sleep mode 
 Serial.flush() ;
 delay(100);
 char Sigfox_message[34] = {0};  // 26 or 34 bytes max ( 1 or 2 HX711)
 
-
-if (AUTODETECT_HX711_N34) {
-                        sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x%04x%04x",header_byte,power_supply_voltage_Arduino,t_byte,h_byte,Weight_HX711_N1_Channel_A,Weight_HX711_N2_Channel_A,Weight_HX711_N3_Channel_A,Weight_HX711_N4_Channel_A);
-                        }
-                        else {
-
-
-                        if (AUTODETECT_HX711_N2) {
-                            sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x%04x%04x",header_byte,power_supply_voltage_Arduino,t_byte,h_byte,Weight_HX711_N1_Channel_A,Weight_HX711_N1_Channel_B,Weight_HX711_N2_Channel_A,Weight_HX711_N2_Channel_B);
-                            }
-
-                            else{
-                                sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x",header_byte,power_supply_voltage_Arduino,t_byte,h_byte,Weight_HX711_N1_Channel_A,Weight_HX711_N1_Channel_B);
-                                }
-                        }
-
+sprintf(Sigfox_message,"AT$SF=%02x%02x%02x%02x%04x%04x",header_byte,power_supply_voltage_Arduino,t_byte,h_byte,Weight_HX711_N1_Channel_A,Weight_HX711_N1_Channel_B);
 
 Serial.println(Sigfox_message);
 Serial.flush() ;
@@ -766,9 +606,6 @@ else {
 counter_power_down_wake_up  =  counter_power_down_wake_up-1 ;
 
 }
-
-
-
 
 
 // Save Power by writing all Digital IO to LOW EXCLUDING SPECIAL PORT
