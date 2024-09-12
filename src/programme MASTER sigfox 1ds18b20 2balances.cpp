@@ -58,7 +58,7 @@ mise en mémoire de la tare (offset) tant qu'il n'y a pas de reset
 
 
 pas de DHT22 sur les derniers prototypes
-sinon  alime+ de la DHT sur D12  et DATA sur A3
+sinon  alime+ de la DHT sur pin D12  et DATA sur pin A3
 
 on remplace par une sonde DS18B20 alime en D8 et data en D9***********************
 
