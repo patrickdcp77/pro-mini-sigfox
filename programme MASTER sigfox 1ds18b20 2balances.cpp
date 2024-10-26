@@ -255,7 +255,7 @@ byte header_byte = B00000000;
 
 
 /////////////////////////////////////pour modifier le débuggage
-boolean DEBUG_MODE = 0 ;// =1 or debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
+boolean DEBUG_MODE = 0 ;// =1 or 0 debbug , then ALLOW BLINKING LED and statement on Serial Monitor throught SERIAL RX/TX UART0  
 //////////////////////////////////////
 
 // put your setup code here, to run once:
