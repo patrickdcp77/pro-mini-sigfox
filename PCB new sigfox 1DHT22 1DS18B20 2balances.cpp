@@ -188,6 +188,11 @@ void setup() {
     digitalWrite(RESET_SIGFOX_MODULE,HIGH);
     // delay (100);
 
+    
+    sensors.begin();
+    dht.begin();
+    delay(1000);    // MADATORY 1000 or put code in between
+    
 
     /**********************
     pinMode(A3, INPUT);
@@ -378,6 +383,7 @@ if (counter_power_down_wake_up == 0) {
     digitalWrite(DS18B20_POWER_SUPPLY_PIN,HIGH);
 
     pinMode(DHT_POWER_SUPPLY_PIN,OUTPUT);
+    pinMode(DHTPIN,INPUT); 
     digitalWrite(DHT_POWER_SUPPLY_PIN,HIGH);
 
     pinMode(MICROPROCESOR_VOLTAGE_CAN_PULL_UP_PIN,OUTPUT);
@@ -385,16 +391,15 @@ if (counter_power_down_wake_up == 0) {
     pinMode(MICROPROCESOR_VOLTAGE_CAN_MEASUREMENT,INPUT); 
     pinMode(SOLAR_PANEL_VOLTAGE_CAN_MEASUREMENT,INPUT);
 
-    sensors.begin();
-    dht.begin();
-    delay(1000);    // MADATORY 1000 or put code in between
-
+    
         
     
     // Lire l'humidité relative
   float h = dht.readHumidity();
+  Serial.println(h);
   // Lire la température en Celsius
   float t = dht.readTemperature();
+  Serial.println(t);
 
   // Vérifier si les lectures ont échoué et si oui, sortir de la boucle pour réessayer.
   if (isnan(h) || isnan(t)) {
@@ -409,14 +414,14 @@ if (counter_power_down_wake_up == 0) {
 
 
 
-    digitalWrite(DHT_POWER_SUPPLY_PIN,LOW);
-    digitalWrite(DS18B20_POWER_SUPPLY_PIN,LOW);
     
     uint8_t hd_byte = (h);
     uint8_t td_byte = (t + 35)*2;
     int8_t  t_byte = (temperatureC + 35 )*2;
 
-
+    digitalWrite(DHT_POWER_SUPPLY_PIN,LOW);
+    digitalWrite(DS18B20_POWER_SUPPLY_PIN,LOW);
+    
 
 
     if (DEBUG_MODE) { 
